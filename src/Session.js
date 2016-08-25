@@ -670,6 +670,10 @@ Session.prototype = {
         break;
       case SIP.C.INFO:
         if(this.status === C.STATUS_CONFIRMED || this.status === C.STATUS_WAITING_FOR_ACK) {
+          if (this.onInfo) {
+            return this.onInfo(request);
+          }
+
           var body, tone, duration,
               contentType = request.getHeader('content-type'),
               reg_tone = /^(Signal\s*?=\s*?)([0-9A-D#*]{1})(\s)?.*/,
@@ -1130,7 +1134,7 @@ InviteServerContext.prototype = {
 
       this.receiveRequest = function(request) {
         if (request.method === SIP.C.ACK) {
-          this.request(SIP.C.BYE, {
+          this.sendRequest(SIP.C.BYE, {
             extraHeaders: extraHeaders,
             body: body
           });
@@ -1324,6 +1328,8 @@ InviteServerContext.prototype = {
     SIP.Utils.optionsOverride(options, 'media', 'mediaConstraints', true, this.logger, this.ua.configuration.media);
     this.mediaHint = options.media;
 
+    this.onInfo = options.onInfo;
+
     // commented out now-unused hold-related variables for jshint. See below. JMF 2014-1-21
     var
       //idx, length, hasAudio, hasVideo,
@@ -1498,6 +1504,8 @@ InviteServerContext.prototype = {
         this.renderbody = request.body;
         this.rendertype = contentType;
       }
+
+      this.emit('confirmed', request);
     }
 
     switch(request.method) {
@@ -1761,6 +1769,8 @@ InviteClientContext = function(ua, target, options) {
 
   SIP.Utils.optionsOverride(options, 'media', 'mediaConstraints', true, this.logger, this.ua.configuration.media);
   this.mediaHint = options.media;
+
+  this.onInfo = options.onInfo;
 };
 
 InviteClientContext.prototype = {
